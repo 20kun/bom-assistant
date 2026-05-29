@@ -199,8 +199,8 @@ class BOMAgent:
 
     def __init__(self, api_key: str, base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
-        self.text_model = "qwen-plus"
-        self.vision_model = "qwen-vl-plus"
+        self.text_model = "Qwen/Qwen2.5-72B-Instruct"
+        self.vision_model = "Qwen/Qwen2-VL-72B-Instruct"
 
     # ── Image extraction ──
 
