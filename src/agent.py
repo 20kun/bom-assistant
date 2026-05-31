@@ -205,7 +205,7 @@ class BOMAgent:
     # ── Image extraction ──
 
     def extract_from_image(self, image_bytes: bytes, filename: str = "bom.png",
-                           preprocess: bool = True) -> BOMExtractionResult:
+                           preprocess: bool = False) -> BOMExtractionResult:
         """Extract BOM from image using vision model.
 
         Args:
@@ -219,6 +219,9 @@ class BOMAgent:
             except Exception as e:
                 logger.warning(f"Image preprocessing failed ({e}), using original")
 
+        # Compress large images to speed up API transmission
+        image_bytes = self._compress_image(image_bytes)
+
         b64 = base64.b64encode(image_bytes).decode("utf-8")
 
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
@@ -227,6 +230,23 @@ class BOMAgent:
 
         raw = self._call_vision(mime, b64)
         return self._parse_json_response(raw)
+
+    @staticmethod
+    def _compress_image(image_bytes: bytes, max_size: int = 1600, quality: int = 85) -> bytes:
+        """Compress and resize image for faster API transmission."""
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            # Resize if larger than max_size
+            if max(img.size) > max_size:
+                img.thumbnail((max_size, max_size), Image.LANCZOS)
+            # Convert to RGB if needed
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality, optimize=True)
+            return buf.getvalue()
+        except Exception:
+            return image_bytes
 
     @retry_on_error(max_retries=3, base_delay=1.0)
     def _call_vision(self, mime: str, b64: str) -> str:
